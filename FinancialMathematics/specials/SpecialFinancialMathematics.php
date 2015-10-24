@@ -5,6 +5,10 @@
  *
  */
 
+$path = dirname(dirname(__FILE__)) ;
+set_include_path(get_include_path() . PATH_SEPARATOR . $path);
+require_once "FinancialMathematics.hooks.php";
+
 
 $path = dirname(dirname(__FILE__)) . "/PEAR";
 set_include_path(get_include_path() . PATH_SEPARATOR . $path);
@@ -25,47 +29,60 @@ class SpecialFinancialMathematics extends SpecialPage {
 		$out->addWikiMsg( 'financialmathematics-helloworld-intro' );
 		$_restart_label = wfMessage( 'fm-restart')->text();
 		$_restart = '<form action="" method=GET><input type="submit" value="' . $_restart_label . '"></form>' ;
+//		$out->addHTML( "getQueryVaues is <pre> " . print_r($this->getRequest()->getQueryValues(), 1) . "</pre>" );
 		$out->addHTML( $_restart );
 		$m = new CT1_Concept_All();
-		$result = $m->get_controller($_GET) ;
+		$m->setTagName( FinancialMathematicsHooks::getTagName() );
+		$result = $m->get_controller($this->getRequest()->getQueryValues()) ; 
+//		$out->addHTML( "result output unredndered formulae is <pre> " . print_r($result['output']['unrendered']['formulae'], 1) . "</pre>" );
+//		$out->addHTML( "result output unredndered table is <pre> " . print_r($result['output']['unrendered']['table'], 1) . "</pre>" );
+		$render = new CT1_Render();
 		if (isset($result['warning'])){
 			$out->addHTML( "<span class='fin-math-warning'>" . $result['warning'] . "</span>");
 		}else{
-			if (isset($result['formulae'])){
-				$out->addHTML( $result['formulae'] );
+			if (isset($result['output']['unrendered']['formulae'])){
+				$out->addHTML( $render->get_render_latex($result['output']['unrendered']['formulae']) );
 			}
-			if (isset($result['table'])){
-				$out->addHTML( $result['table'] );
+//			if (isset($result['formulae'])){
+//				$out->addHTML( $result['formulae'] );
+//			}
+//			if (isset($result['table'])){
+//				$out->addHTML( $result['table'] );
+//			}
+			if (isset($result['output']['unrendered']['table'])){
+//					$out->addHTML( "table  FROM unrendered <pre>" . print_r($result['output']['unrendered']['table'],1) . "</pre>");
+				$out->addHTML( $render->get_render_rate_table(
+					$result['output']['unrendered']['table']['rates'],
+					$result['output']['unrendered']['table']['hidden'],
+					$this->getSkin()->getTitle()->getLinkUrl() . "?" ));    
 			}
-			if (isset($result['form'])){
-				$out->addHTML( $result['form'] );
+//			if (isset($result['form'])){
+//				$out->addHTML( $result['form'] );
+//			}
+			if (isset($result['output']['unrendered']['forms'])){
+				foreach ($result['output']['unrendered']['forms'] AS $_f){
+//					$_f['content']['render']='HTML';
+//					$out->addHTML( "FORM FROM unrendered <pre>" . print_r($_f,1) . "</pre>");
+
+					try{	$out->addHTML( $render->get_render_form($_f['content'], $_f['type'] )); 
+					} catch( Exception $e ){
+								$out->addHTML( $e->getMessage() );
+					}
+
+				}
+			}
+//			if (isset($result['xml-form']['form'])){
+//				$out->addHTML( $result['xml-form']['form'] );
+//			}
+
+			if (isset($result['output']['unrendered']['xml-form']['forms'])){
+//		$out->addHTML( "result output unredndered xml-form forms 0 array is <pre> " . print_r($result['output']['unrendered']['xml-form']['forms'], 1) . "</pre>" );
+				foreach ($result['output']['unrendered']['xml-form']['forms'] AS $_f){
+					$_f['content']['render']='HTML';
+					$out->addHTML( $render->get_render_form($_f['content'], $_f['type'] ));
+				}
 			}
 		}
-		// creating object of SimpleXMLElement
-		$xml_data = new SimpleXMLElement('<?xml version="1.0"?><parameters></parameters>');
-/////////////// NEEDS FIX /////////////////////////////////
-		$this->array_to_xml($_GET,$xml_data);
-		$result = print_r("Input for fin-math tag is " . htmlentities($xml_data->asXML()),1);
-		$out->addHTML( $result );
-		$input = print_r("Input from $_GET is " . htmlentities(print_r($_GET,1)),1);
-		$out->addHTML( $input );
-
-	}
-
-	// http://stackoverflow.com/questions/1397036/how-to-convert-array-to-simplexml
-	// function defination to convert array to xml
-	private function array_to_xml( $data, &$xml_data ) {
-    foreach( $data as $key => $value ) {
-        if( is_array($value) ) {
-            if( is_numeric($key) ){
-                $key = 'item'.$key; //dealing with <0/>..<n/> issues
-            }
-            $subnode = $xml_data->addChild($key);
-            $this->array_to_xml($value, $subnode);
-        } else {
-            $xml_data->addChild("$key",htmlspecialchars("$value"));
-        }
-     }
 	}
 
 	protected function getGroupName() {

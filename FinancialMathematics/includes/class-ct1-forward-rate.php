@@ -1,7 +1,5 @@
 <?php   
 
-require_once 'class-ct1-object.php';
-
 class CT1_Forward_Rate extends CT1_Object {
 
     private $delta;
@@ -38,15 +36,15 @@ class CT1_Forward_Rate extends CT1_Object {
         $r = array();
         $r['i_effective'] = array(
             'name'=>'i_effective',
-            'label'=>wfMessage( 'fm-label_i_effective')->text(),  
+            'label'=>self::myMessage( 'fm-label_i_effective'),  
             );
         $r['start_time'] = array(
             'name'=>'start_time',
-            'label'=>wfMessage( 'fm-label_start_time')->text() ,
+            'label'=>self::myMessage( 'fm-label_start_time') ,
             );
         $r['end_time'] = array(
             'name'=>'end_time',
-            'label'=>wfMessage( 'fm-label_end_time')->text(),
+            'label'=>self::myMessage( 'fm-label_end_time'),
             );
         return $r; 
     }

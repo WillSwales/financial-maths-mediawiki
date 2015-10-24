@@ -1,5 +1,4 @@
 <?php   
-require_once 'class-ct1-annuity.php';
 
 class CT1_Annuity_Increasing extends CT1_Annuity{
 // returns value of (Ia)n or (Da)n
@@ -16,10 +15,10 @@ class CT1_Annuity_Increasing extends CT1_Annuity{
 
 	public function get_parameters(){ 
 		$r = parent::get_parameters();
-		$r['term']['label'] = wfMessage( 'fm-label-term-whole')->text() ;
+		$r['term']['label'] = self::myMessage( 'fm-label-term-whole') ;
 		$r['increasing'] = array(
 			'name'=>'increasing',
-			'label'=>wfMessage( 'fm-label-increasing')->text(),
+			'label'=>self::myMessage( 'fm-label-increasing'),
 			);
 		return $r; 
 	}
@@ -180,7 +179,7 @@ class CT1_Annuity_Increasing extends CT1_Annuity{
 			}
 		}
 		catch( Exception $e ){ 
-			throw new Exception( wfMessage( 'fm-exception-in')->text()  . __FILE__ . ": " . $e->getMessage() );
+			throw new Exception( self::myMessage( 'fm-exception-in')  . __FILE__ . ": " . $e->getMessage() );
 		}
 	}
 

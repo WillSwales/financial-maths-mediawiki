@@ -6,7 +6,6 @@
  * @author     Owen Kellie-Smith
  */
 
-require_once 'class-ct1-object.php';
 
 class CT1_Interest_Format extends CT1_Object{
 
@@ -57,11 +56,11 @@ class CT1_Interest_Format extends CT1_Object{
 		$r = parent::get_parameters();
 		$r['m'] = array(
 				'name'=>'m',
-				'label'=>wfMessage( 'fm-label-frequency-instalment')->text(),
+				'label'=>self::myMessage( 'fm-label-frequency-instalment'),
 				);
 		$r['advance'] = array(
 				'name'=>'advance',
-				'label'=>wfMessage( 'fm-label-advanced')->text() ,
+				'label'=>self::myMessage( 'fm-label-advanced') ,
 				);
 		return $r; 
 	}
@@ -124,10 +123,10 @@ class CT1_Interest_Format extends CT1_Object{
 	}
 
 	public function get_description(){
-		if ($this->is_continuous()) return wfMessage( 'fm-interest-continuous')->text();
-		if ($this->advance) $out =  wfMessage( 'fm-discount-rate')->text();
-		else $out = wfMessage( 'fm-interest-rate')->text();
-		if (1!=$this->m) $out.=" " . wfMessage( 'fm-convertible')->text(). " " . $this->m . wfMessage( 'fm-times-per-year')->text();
+		if ($this->is_continuous()) return self::myMessage( 'fm-interest-continuous');
+		if ($this->advance) $out =  self::myMessage( 'fm-discount-rate');
+		else $out = self::myMessage( 'fm-interest-rate');
+		if (1!=$this->m) $out.=" " . self::myMessage( 'fm-convertible'). " " . $this->m . self::myMessage( 'fm-times-per-year');
 		return $out;
 	}
 
@@ -160,12 +159,16 @@ class CT1_Interest_Format extends CT1_Object{
 
 	public function set_from_input($_INPUT = array(), $pre = ''){
 		try{
-			$this->set_m(	$_INPUT[$pre. 'm'] );
-			$this->set_advance($_INPUT[$pre . 'advance']);
+			if (isset($_INPUT[$pre . 'm'])){
+				$this->set_m(	$_INPUT[$pre. 'm'] );
+			}
+			if (isset($_INPUT[$pre . 'advance'])){
+				$this->set_advance($_INPUT[$pre . 'advance']);
+			}
 			return true;
 		}
 		catch( Exception $e ){ 
-			throw new Exception( wfMessage( 'fm-exception-in') . " " . __FILE__ . ": " . $e->getMessage() );
+			throw new Exception( self::myMessage( 'fm-exception-in') . " " . __FILE__ . ": " . $e->getMessage() );
 		}
 	}
 

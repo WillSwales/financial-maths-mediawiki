@@ -1,6 +1,5 @@
 <?php   
 
-require_once 'class-ct1-object.php';
 
 class CT1_Par_Yield extends CT1_Object {
 
@@ -24,11 +23,11 @@ class CT1_Par_Yield extends CT1_Object {
         $r = array();
         $r['coupon'] = array(
             'name'=>'coupon',
-            'label'=>wfMessage( 'fm-label-coupon')->text(),
+            'label'=>self::myMessage( 'fm-label-coupon'),
             );
         $r['term'] = array(
             'name'=>'term',
-            'label'=>wfMessage( 'fm-label_term')->text(), 
+            'label'=>self::myMessage( 'fm-label_term'), 
             );
         return $r; 
     }
@@ -74,12 +73,11 @@ class CT1_Par_Yield extends CT1_Object {
     }
 
     public function get_label(){
-        return wfMessage( 'fm-par-yield')->text()  . "(" . $this->get_term() . ")";
+        return self::myMessage( 'fm-par-yield')  . "(" . $this->get_term() . ")";
 	}
 
             
     public function get_annuity_label(){
-	require_once 'class-ct1-annuity.php';
 	$a = new CT1_Annuity();
 	$a->set_term( $this->get_term() );
         return $this->get_coupon() . $a->get_label() . " + v^{ " . $this->get_term() . "}";

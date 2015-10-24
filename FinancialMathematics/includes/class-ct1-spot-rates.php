@@ -1,13 +1,16 @@
 <?php   
-require_once 'class-ct1-spot-rate.php';
-require_once 'class-ct1-forward-rates.php';
-require_once 'class-ct1-par-yields.php';
-require_once 'class-ct1-collection.php';
 
 class CT1_Spot_Rates extends CT1_Collection {
 
 protected $explanation_forward_rates;
 protected $explanation_par_yields;
+
+	public function get_valid_options(){ 
+		$r = parent::get_valid_options();
+		$r['CT1_Spotrates'] = array();
+		return $r; 
+	}
+
 
 	public function get_clone_this(){
 		$a_calc = new CT1_Spot_Rates();
@@ -23,21 +26,23 @@ protected $explanation_par_yields;
 	}
 
 	private function get_sorted_terms(){
-		$terms = array_keys( $this->get_objects() );
-		sort( $terms );
-		return $terms;
+		if ( $this->get_objects() ){
+			$terms = array_keys( $this->get_objects() );
+			sort( $terms );
+			return $terms;
+		}
 	}
 
 	public function explain_par_yield( CT1_Par_Yield $f ){
 		if ( !$this->get_par_yields()->is_in_collection( $f ) ){
-			throw new Exception( __FILE__ . wfMessage( 'fm-error-explain-paryield', $f )->text()  );
+			throw new Exception( __FILE__ . self::myMessage( 'fm-error-explain-paryield', $f )  );
 		}
 		return $this->explanation_par_yields[ $f->get_term() ];
 	}
 
 	public function explain_forward_rate( CT1_Forward_Rate $f ){
 		if ( !$this->get_forward_rates()->is_in_collection( $f ) ){
-			throw new Exception( __FILE__ .  wfMessage( 'fm-error-explain-forward', $f )->text()  );
+			throw new Exception( __FILE__ .  self::myMessage( 'fm-error-explain-forward', $f )  );
 		}
 		return $this->explanation_forward_rates[ $f->get_end_time() ];
 	}
@@ -51,7 +56,10 @@ protected $explanation_par_yields;
 		$pars = $this->get_par_yields()->get_objects();
 		$key_spot = array_keys( $spots );
 		$key_forward = array_keys( $forwards );
-		$key_par = array_keys( $pars );
+		$key_par = null;
+		if ( $pars ){
+			$key_par = array_keys( $pars );
+		}
 		for ($i = 0, $ii = $this->get_count(); $i < $ii; $i++) {
 			$row = array(); $objects = array();
 			$s = $spots[ $key_spot[ $i ] ];
@@ -137,7 +145,7 @@ protected $explanation_par_yields;
 		// returns sum for discounted value of 1 payable at terms 1, 2, .. $term
 		// provided spot rates exist for terms 1, 2, ... $term
 		if ( $term > $this->maximum_contiguous_term() ){
-			throw new Exception ( __FILE__ . wfMessage( 'fm-error-explain-annuity-value-term', $term,  $this->maximum_contiguous_term()  )->text()   );
+			throw new Exception ( __FILE__ . self::myMessage( 'fm-error-explain-annuity-value-term', $term,  $this->maximum_contiguous_term()  )   );
 		}
 		$spot_rates = $this->get_objects();
 		$terms = $this->get_sorted_terms();
@@ -155,7 +163,7 @@ protected $explanation_par_yields;
 		// returns discounted value of 1 payable at terms 1, 2, .. $term
 		// provided spot rates exist for terms 1, 2, ... $term
 		if ( $term > $this->maximum_contiguous_term() ){
-			throw new Exception ( __FILE__ . wfMessage( 'fm-error-annuity-value-term', $term,  $this->maximum_contiguous_term()  )->text()  );
+			throw new Exception ( __FILE__ . self::myMessage( 'fm-error-annuity-value-term', $term,  $this->maximum_contiguous_term()  )  );
 		}
 		$spot_rates = $this->get_objects();
 //echo "<pre>" . __FILE__ . print_r($spot_rates, 1) . "</pre>";
@@ -206,7 +214,7 @@ protected $explanation_par_yields;
 			}
 		}
 		catch( Exception $e ){ 
-			throw new Exception( wfMessage( 'fm-exception-in' )->text()  . __FILE__ . ": " . $e->getMessage() );
+			throw new Exception( self::myMessage( 'fm-exception-in' )  . __FILE__ . ": " . $e->getMessage() );
 		}
 	}
 }

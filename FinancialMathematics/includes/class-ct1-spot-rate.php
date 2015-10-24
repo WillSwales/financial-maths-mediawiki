@@ -1,6 +1,5 @@
 <?php   
 
-require_once 'class-ct1-object.php';
 
 class CT1_Spot_Rate extends CT1_Object {
 
@@ -29,11 +28,11 @@ class CT1_Spot_Rate extends CT1_Object {
         $r = array();
         $r['i_effective'] = array(
             'name'=>'i_effective',
-            'label'=>wfMessage( 'fm-label-i_effective-timed')->text(),
+            'label'=>self::myMessage( 'fm-label-i_effective-timed'),
             );
         $r['effective_time'] = array(
             'name'=>'effective_time',
-            'label'=>wfMessage( 'fm-label-effective-time')->text(),
+            'label'=>self::myMessage( 'fm-label-effective-time'),
             );
         return $r; 
     }

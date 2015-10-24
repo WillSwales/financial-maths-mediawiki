@@ -1,7 +1,5 @@
 <?php   
 
-//CT1_autoloader('HTML_QuickForm2','HTML/QuickForm2.php');
-//CT1_autoloader('HTML_Table','HTML/Table.php');
 
 define("CT1_MAXIMUM_LEVELS_DETAIL", 10);
 
@@ -32,13 +30,38 @@ public function __construct(CT1_Object $obj=null){
 	 *
 	 * @access public
 	 */
-	public function get_render_form( $form ){
-		if ('HTML'==$form['render'] ){
-			return $this->get_form_html( $form );
-		} else {
-			return $this->get_form_plain( $form );
-		}
+	public function get_render_form( $form, $type='' ){
+		if (isset($form['render'])){
+			if ('plain'==$form['render'] ){
+			  return $this->get_form_plain( $form );
+			}
+		} // else  default is html
+			if ( 'get_form_collection'==$type ){
+				return $this->get_form_collection( $form['collection'], $form['submit'], $form['intro'], $form['request']);
+			} elseif ( 'select'==$type ){
+				return $this->get_select_form( $form );
+			} else {
+				return $this->get_form_html( $form );
+		  }
 	}
+
+
+	public function get_render_rate_table( $rates, $hidden, $link='' ){
+		$link .=  $this->get_link($hidden);
+		for ( $i = 0, $ii = count( $rates['data'] ); $i < $ii; $i++ ){
+			$f = $rates['objects'][$i]['CT1_Forward_Rate'];
+			$p = null;
+			if (isset($rates['objects'][$i]['CT1_Par_Yield'])){
+				$p = $rates['objects'][$i]['CT1_Par_Yield'];
+			}
+			if ( is_object( $f ) )
+				$rates['data'][$i][3]  = $this->get_anchor_forward( $f, $link );
+			if ( is_object( $p ) )
+				$rates['data'][$i][5]  = $this->get_anchor_par( $p, $link );
+		}
+		return $this->get_table( $rates['data'], $rates['header'] );
+	}
+
 
 	/**
 	 * Get string of &,= pairs suitable for writing a URL that can ge read via $_GET
@@ -72,13 +95,15 @@ public function __construct(CT1_Object $obj=null){
 		$out = "";
 		if ( !empty( $intro ) )
 			$out.= "<p>" . $intro . "</p>" . "\r\n";
-		$form = new HTML_QuickForm2($return['name'],'GET', '');
+		$form = new HTML_QuickForm2( 'name-for-collection','GET', '');
 		$form->addDataSource(new HTML_QuickForm2_DataSource_Array() );
 		$fieldset = $form->addElement('fieldset');
 		$hidden = $cf->get_values_as_array(  get_class( $cf ) );
 		$this->add_hidden_fields_to_fieldset( $fieldset, $hidden );
 		$fieldset->addElement('hidden', 'request')->setValue( $request );
-		$fieldset->addElement('hidden', 'page_id')->setValue($_GET['page_id']);
+		if (isset($_GET['page_id'])){
+			$fieldset->addElement('hidden', 'page_id')->setValue($_GET['page_id']);
+		}
 		$fieldset->addElement('submit', null, array('value' => $submit));
 		$out.= $form;
 		return $out;
@@ -94,6 +119,8 @@ public function __construct(CT1_Object $obj=null){
 	 */
 	public function get_render_latex( $equation_array, $newline=false ){
 	// would be better if this were just recursive but I don't know how
+		$out = "";
+		$_nl="";
 		if ($newline) $_nl="\r\n ";
 		if (count($equation_array) > 0 ) {
 			$out  = $this->get_mathjax_header() .  $_nl;
@@ -125,14 +152,19 @@ public function __construct(CT1_Object $obj=null){
 	 * @access public
 	 */
 	public function get_table( $row_data, $column_headers ){
+
 		// see http://pear.php.net/manual/en/package.html.html-table.intro.php
 		$table = new HTML_Table();
 		$table->setAutoGrow(true);
 		$table->setAutoFill('n/a');
 		for ( $nr = 0, $maxr = count( $row_data ); $nr < $maxr; $nr++ ){
 			for ($i =0, $ii = count( $column_headers ); $i < $ii; $i++ ){
-				if ('' != $row_data[$nr][$i] ){
-					$table->setCellContents( $nr+1, $i, $row_data[$nr][$i] );
+				if (isset($row_data[$nr][$i] )){
+					if ('' != $row_data[$nr][$i] ){
+						$table->setCellContents( $nr+1, $i, $row_data[$nr][$i] );
+					}
+				} else {
+					$table->setCellContents( $nr+1, $i, 'n/a' );
 				}
 			}
 		}
@@ -156,19 +188,67 @@ public function __construct(CT1_Object $obj=null){
 	 * @access public
 	 */
 	public function get_select_form( $return ){
+		$out="";
 		if ( !empty( $return['introduction'] ) )
 			$out = "<p>" . $return['introduction'] . "</p>" . "\r\n";
-		$form = new HTML_QuickForm2($return['name'],$return['method'], $return['action']);
-		$fieldset = $form->addElement('fieldset');
-		$calculator = $fieldset->addSelect( $return['select-name'] )
+		foreach (array('name','method','action','select-name','select-label','select-options','submit') as $key){
+			$temp[$key]='';
+			if ( isset( $return[$key] ) ){
+				$temp[$key] = $return[$key];
+			}
+		}
+		$return = $temp;
+			$form = new HTML_QuickForm2($return['name'],$return['method'], $return['action']);
+			$fieldset = $form->addElement('fieldset');
+			$calculator = $fieldset->addSelect( $return['select-name'] )
 				->setLabel( $return['select-label'] )
 				->loadOptions( $return['select-options']);
-		$fieldset->addElement('hidden', 'page_id')->setValue($_GET['page_id']);
-		$fieldset->addElement('submit', null, array('value' => $return['submit']));
-		$out.= $form;
+			$temp_page_id='';
+			if( isset($_GET['page_id'])){
+				$temp_page_id = $_GET['page_id'];
+			}
+			$fieldset->addElement('hidden', 'page_id')->setValue($temp_page_id);
+			$fieldset->addElement('submit', null, array('value' => $return['submit']));
+			$out.= $form;
 		return $out;
 	}
+
+	protected static function myMessage( $messageKey){
+			$m = $messageKey;
+			if ( function_exists('wfMessage') ){
+				$m=wfMessage( $messageKey)->text();
+			}
+			return $m;
+  }
 			
+
+	/**
+	 * Get anchor to detailed forward rate calculation
+	 *
+	 * @param CT1_Forward_Rate $f
+	 * @param string $page_link
+	 * @return string
+	 *
+	 * @access public
+	 */
+	private function get_anchor_forward( CT1_Forward_Rate $f, $page_link ){
+		return "<a href='" . $page_link . "&request=explain_forward&forward_start_time=" . $f->get_start_time() . "&forward_end_time=" . $f->get_end_time() . "'>" . $f->get_i_effective() . "</a>";
+	}
+
+	/**
+	 * Get anchor to detailed par yield calculation
+	 *
+	 * @param CT1_Par_Yield $p
+	 * @param string $page_link
+	 * @return string
+	 *
+	 * @access public
+	 */
+	private function get_anchor_par( CT1_Par_Yield $p, $page_link ){
+		return "<a href='" . $page_link . "&request=explain_par&par_term=" . $p->get_term() . "'>" . $p->get_coupon() . "</a>";
+	}
+
+
 	/**
 	 * Get rendering of one latex sentence and return an array of its details
 	 *
@@ -179,6 +259,7 @@ public function __construct(CT1_Object $obj=null){
 	 * @access private
 	 */
 	private function get_render_latex_sentence( $equation_array, &$label = '', $newline=false ){
+		$_nl="";
 		if ($newline) $_nl="\r\n ";
 		$out = "";
 		$detail = array();
@@ -244,7 +325,7 @@ public function __construct(CT1_Object $obj=null){
 	private function get_render_latex_sentence_detail( $e, &$detail ){
 		$out = "";
 		if ( $this->is_sentence( $e['right']['detail'] ) ) {
-			$out .= " \\mbox{ ".wfMessage( 'fm-by')->text()." \\eqref{eq:" . $this->eqref . "}}";
+			$out .= " \\mbox{ ".self::myMessage( 'fm-by')." \\eqref{eq:" . $this->eqref . "}}";
 			$detail[] = array(
 				'equation' => $e['right']['detail'],
 				'label' => $this->eqref,
@@ -264,7 +345,7 @@ public function __construct(CT1_Object $obj=null){
 				'equation' => $e['right']['detail'][$count_refs-1],
 				'label' => $this->eqref . "." . ($count_refs-1),
 				);
-			$out .= " \\mbox{ ".wfMessage( 'fm-by')->text() ." " . $eqlist . "}";
+			$out .= " \\mbox{ ".self::myMessage( 'fm-by') ." " . $eqlist . "}";
 		}
 		return $out;
 	}
@@ -279,6 +360,7 @@ public function __construct(CT1_Object $obj=null){
 	 */
 	private function get_a_layer_of_equation_detail( $output, $newline=false ){
 	// $sub_count is redundant?
+	$_nl="";
 	if ($newline) $_nl="\r\n ";
 		$out = '';
 		$ret_out = array();
@@ -369,17 +451,24 @@ public function __construct(CT1_Object $obj=null){
 	 */
 	private function get_form_html( $return ){
 		// returns html based on form parameters in $return
+		$fieldset=null;;
 		$out = "<p>" . $return['introduction'] . "</p>" . "\r\n";
+		if (!isset($return['name'])) $return['name']='';
+		if (!isset($return['action'])) $return['action']='';
 		$form = new HTML_QuickForm2($return['name'],$return['method'], $return['action']);
+		if (!isset($return['values'])) $return['values']=array();
 		$form->addDataSource(new HTML_QuickForm2_DataSource_Array( $return['values'] ) );
 		if (count($return['parameters']) > 0){
 			$fieldset = $form->addElement('fieldset');
 			foreach(array_keys($return['parameters']) as $key){
-				if (!in_array($key, $return['exclude'])){
+				if (isset($return['exclude'])){
+				  if (!in_array($key, $return['exclude'])){
 					$parameter = $return['parameters'][$key];
 					$valid_option = array();
 					if (array_key_exists($key,$return['valid_options'])){
 						$valid_option = $return['valid_options'][$key];
+						if ('string'==$valid_option['type']) 
+							$input_type='textarea';
 						if ('number'==$valid_option['type']) 
 							$input_type='text';
 						if ('boolean'==$valid_option['type']) 
@@ -387,20 +476,27 @@ public function __construct(CT1_Object $obj=null){
 					}
 					$value = '';
 					$fieldset->addElement($input_type, $key)->setLabel($parameter['label']);
+				  }
 				}
 			}
 		}
-		if (count($return['hidden']) > 0){
+		if (isset($return['hidden'])){
+		  if (count($return['hidden']) > 0){
 			$fieldset_hidden = $form->addElement('fieldset');
 			foreach(array_keys( $return['hidden']) as $key ){
 				$value = $return['hidden'][$key];
 				$fieldset_hidden->addElement('hidden', $key)->setValue( $value );
 			}
+		  }
 		}
 		// add page_id
-		$fieldset->addElement('hidden', 'request')->setValue($return['request']);
-		$fieldset->addElement('hidden', 'page_id')->setValue($_GET['page_id']);
-		$fieldset->addElement('submit', null, array('value' => $return['submit']));
+		if ($fieldset){
+			$fieldset->addElement('hidden', 'request')->setValue($return['request']);
+			if (isset($_GET['page_id'])){
+				$fieldset->addElement('hidden', 'page_id')->setValue($_GET['page_id']);
+			}
+			$fieldset->addElement('submit', null, array('value' => $return['submit']));
+		}
 		$out.= $form;
 		return $out;
 	}

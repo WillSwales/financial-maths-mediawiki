@@ -1,8 +1,5 @@
 <?php
 
-require_once 'class-ct1-cashflows.php';
-require_once 'class-ct1-form.php';
-require_once 'class-ct1-render.php';
 
 /**
  * CT1_Concept_Cashflows class
@@ -28,6 +25,12 @@ class CT1_Concept_Cashflows extends CT1_Form{
 		$this->set_request( 'get_cashflows' );
 	}
 
+public function get_concept_label(){
+	return array(	
+				'concept_cashflows'=> self::myMessage(  'fm-multiple-cashflows'), 
+ );
+} 
+
 	/**
 	 * Get string to render as HTML after new page GET request
 	 *
@@ -39,36 +42,37 @@ class CT1_Concept_Cashflows extends CT1_Form{
 	public function get_controller($_INPUT ){
   $return=array();
 		try{
-			if (isset($_INPUT[ get_class( $this->obj ) ])){
-				if (!$this->set_cashflows( $_INPUT[ get_class( $this->obj ) ] ) ){ 
-					$return['warning']=wfMessage( 'fm-error-cashflows')->text();
+			$tempClass = get_class( $this->obj ) ;
+			if (isset($_INPUT[ $tempClass ])){
+				if (!$this->set_cashflows( $_INPUT[ $tempClass ] ) ){ 
+					$return['warning']=self::myMessage( 'fm-error-cashflows');
 					return $return;
 				}
 			}
 			if (isset($_INPUT['request'])){
 				if ('add_cashflow' == $_INPUT['request']){
 					$this->add_cashflow_from_input( $_INPUT );
-					$return['formulae']= $this->get_solution_no_detail();
-					$return['form']= $this->get_val_delete_add()  ;
-				  	return $return;
+				  $return['output']['unrendered']['formulae'] = $this->get_unrendered_solution_no_detail();
+				  $return['output']['unrendered']['forms'] = $this->get_unrendered_val_delete_add();
+				  return $return;
 				}
 				if ($this->get_request() == $_INPUT['request']){
-					$return['formulae']= $this->get_calculated_value( $_INPUT ) ;
-					$return['form']= $this->get_val_delete_add()  ;
+				  $return['output']['unrendered']['formulae'] = $this->get_unrendered_calculated_value( $_INPUT );
+					$return['output']['unrendered']['forms'] = $this->get_unrendered_val_delete_add();
 				  	return $return;
 				}
 			}
-			if (isset($_INPUT[ get_class( $this->obj ) ])){
-				$return['formulae']= $this->get_solution_no_detail();
-				$return['form']= $this->get_val_delete_add()  ;
+			if (isset($_INPUT[ $tempClass ])){
+				  $return['output']['unrendered']['formulae'] = $this->get_unrendered_solution_no_detail();
+				$return['output']['unrendered']['forms'] = $this->get_unrendered_val_delete_add();
 			  	return $return;
 			}
 			else{
-				$return['form']= $this->get_form_add_cashflow()   ;
+				$return['output']['unrendered']['forms'][] = $this->get_unrendered_form_add_cashflow();
 				  return $return;
 		  	}
 		} catch( Exception $e ){
-				$return['warning']=wfMessage( 'fm-exception-in')->text() . __FILE__ . print_r($e->getMessage(),1);
+				$return['warning']=self::myMessage( 'fm-exception-in') . __FILE__ . print_r($e->getMessage(),1);
 			return $return;
 		}
 	}
@@ -90,86 +94,43 @@ class CT1_Concept_Cashflows extends CT1_Form{
 		}
 	}
 
-
-	/**
-	 * Get string to render all the inputs forms (new valuation, add / delete cashflows)
-	 *
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_val_delete_add(){
-		return  $this->get_form_valuation() . $this->get_delete_buttons() .  $this->get_form_add_cashflow()  ;
+	private function get_unrendered_calculated_value( $_INPUT ){
+		if ( $this->ignore_value( $_INPUT ) ){
+			if (isset( $_INPUT['i_effective'] ) )
+				return $this->get_unrendered_solution( (float)$_INPUT['i_effective'] ); 
+		} else {
+			return $this->get_unrendered_interest_rate_for_value( (float)$_INPUT['value'] );
+		}
 	}
 
-	/**
-	 * Get string to render form requesting explanation of value or interest rate
-	 *
-	 * @param CT1_Cashflows $cf
-	 * @param string $submit caption for sumbit button
-	 * @param string $intro text to place above form (if any)
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_render_form_cashflow( CT1_Cashflows $cf, $submit ='Submit' , $intro = "" ){
-		$render = new CT1_Render();
-		return $render->get_form_collection( $cf, $submit, $intro, 'view_cashflows');
-	}
 
-	/**
-	 * Get list of cashflows (with no value)
-	 *
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_solution_no_detail(){
-		$render = new CT1_Render();
-		$return = $render->get_render_latex($this->obj->explain_discounted_value(false));
+	private function get_unrendered_val_delete_add(){
+		$return =  array( 
+			$this->get_unrendered_form_valuation(),
+			$this->get_unrendered_form_add_cashflow(),
+		);			 
+		$return = array_merge( $return, 			$this->get_unrendered_delete_buttons() );
 		return $return;
 	}
 
-	/**
-	 * Get explanation of valuation of cashflows
-	 *
-	 * @param float $new_i_effective
-	 * @return string
-	 *
-	 * @access public
-	 */
-	public function get_solution( $new_i_effective = 0 ){
+
+	private function get_unrendered_solution_no_detail(){
+		return $this->obj->explain_discounted_value(false);
+	}
+
+
+	private function get_unrendered_solution( $new_i_effective = 0 ){
 		$this->obj->set_i_effective( $new_i_effective );	
-		$render = new CT1_Render();
-		$return = $render->get_render_latex($this->obj->explain_discounted_value());
-		return $return;
+		return $this->obj->explain_discounted_value();
 	}
 
-
-	/**
-	 * Get delete buttons (forms which contain as hidden fields the undeleted cashflows)
-	 *
-	 * @return string
-	 *
-	 * @access public
-	 */
-	public function get_delete_buttons(){
-		return parent::get_delete_buttons('view_cashflows');
-	}
 	
+	public function get_unrendered_delete_buttons($unused=''){
+		return parent::get_unrendered_delete_buttons('view_cashflows');
+	}
 
-	/**
-	 * Get explanation of interest rate that satisfies sought net present value
-	 *
-	 * @param float $v sought net present value
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_interest_rate_for_value( $v = 0 ){
-		$render = new CT1_Render();
-		$return = $render->get_render_latex($this->obj->explain_interest_rate_for_value( $v ));
-		return $return;
+	private function get_unrendered_interest_rate_for_value( $v = 0 ){
+		return $this->obj->explain_interest_rate_for_value( $v );
 	}
 
 	/**
@@ -188,18 +149,13 @@ class CT1_Concept_Cashflows extends CT1_Form{
 	}
 
 
-	/**
-	 * Get HTML for form to add a cashflow (including as hidden fields all the existing cashflows)
-	 *
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_form_add_cashflow(){
-		$render = new CT1_Render();
-		return $render->get_render_form( $this->get_add_cashflow() );
+	private function get_unrendered_form_add_cashflow(){
+		return array(
+			'content'=>$this->get_add_cashflow(),
+			'type'=>'',
+		);
 	}
-	
+
 
 	/**
 	 * Get array of parameters for existing cashflows
@@ -227,16 +183,16 @@ class CT1_Concept_Cashflows extends CT1_Form{
 		$parameters = array();
 		$parameters['single_payment'] = array(
 			'name'=> 'single_payment',
-			'label' => wfMessage( 'fm-single_payment')->text(),
+			'label' => self::myMessage( 'fm-single_payment'),
 			);
 		$parameters_c = array_merge( $c_e->get_parameters(), $c_i->get_parameters() );
 		$parameters = array_merge( $parameters, $parameters_c );
 		$valid_options = array_merge( $c_e->get_valid_options(), $c_i->get_valid_options() );
-		$valid_options['single_payment'] = array( 'type' => boolean );
-		$valid_options['consider_increasing'] = array( 'type' => boolean );
+		$valid_options['single_payment'] = array( 'type' => 'boolean' );
+		$valid_options['consider_increasing'] = array( 'type' => 'boolean' );
 		$parameters['consider_increasing'] = array(
 			'name'=> 'consider_increasing',
-			'label' => wfMessage( 'fm-consider_increasing')->text(),
+			'label' => self::myMessage( 'fm-consider_increasing'),
 			);
 		foreach ( array('value','delta', 'escalation_delta') as $p ){
 			unset( $parameters[ $p ] );
@@ -249,27 +205,22 @@ class CT1_Concept_Cashflows extends CT1_Form{
 		$form['valid_options'] = $valid_options;
 		$form['request'] = 'add_cashflow';
 		$form['render'] = 'HTML';
-		$form['introduction'] = wfMessage( 'fm-add-a-cashflow')->text() ;
-		$form['submit'] = wfMessage( 'fm-add')->text() ;
+		$form['introduction'] = self::myMessage( 'fm-add-a-cashflow') ;
+		$form['submit'] = self::myMessage( 'fm-add') ;
 		$form['exclude'] = array( "i_effective" );
 		$form['values'] = $values;
 		$form['hidden'] = $this->get_hidden_cashflow_fields();
 		return $form;
 	}
 
-	/**
-	 * Get rendered form to request a valuation of cashflows (or interest rate that satisfies a value)
-	 *
-	 * @return string
-	 *
-	 * @access private
-	 */
-	private function get_form_valuation(){
-		$calc = $this->get_calculator( $unused );
-		$render = new CT1_Render();
-		return $render->get_render_form( $calc );
-	}
 
+
+	private function get_unrendered_form_valuation(){
+		 return array(
+			'content'=> $this->get_calculator( '' ),
+			'type'=>  ''
+		);
+	}
 
 	/**
 	 * Get array of parameters for form to value cashflows (get value or ineterst rate satisfying value)
@@ -281,11 +232,11 @@ class CT1_Concept_Cashflows extends CT1_Form{
 	public function get_calculator($parameters){
 		$parameters['i_effective'] = array(
 			'name'=> 'i_effective',
-			'label' => wfMessage( 'fm-label_i_effective')->text(),
+			'label' => self::myMessage( 'fm-label_i_effective'),
 			);
 		$parameters['value'] = array(
 			'name'=> 'value',
-			'label' => wfMessage( 'fm-label_value_total')->text(),
+			'label' => self::myMessage( 'fm-label_value_total'),
 			);
 		$valid_options = array();
 		$valid_options['i_effective'] = array(
@@ -304,8 +255,8 @@ class CT1_Concept_Cashflows extends CT1_Form{
 		$form['valid_options'] = $valid_options;
 		$form['request'] = $this->get_request();
 		$form['render'] = 'HTML';
-		$form['introduction'] = wfMessage( 'fm-value-cashflows')->text() ;
-		$form['submit'] = wfMessage( 'fm-calculate')->text();
+		$form['introduction'] = self::myMessage( 'fm-value-cashflows') ;
+		$form['submit'] = self::myMessage( 'fm-calculate');
 		$form['exclude'] = array();
 		$form['values'] = $values;
 		$form['hidden'] = $this->get_hidden_cashflow_fields();
