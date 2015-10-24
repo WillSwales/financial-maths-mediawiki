@@ -35,7 +35,7 @@ public function get_concept_label(){
 	/**
 	 * Get string to render as HTML after new page GET request
 	 *
-	 * @param array $_INPUT  
+	 * @param array $_INPUT  Probably $_GET
 	 * @return string
 	 *
 	 * @access public
