@@ -23,17 +23,42 @@
  * THE SOFTWARE.
  */
 
-if ( function_exists( 'wfLoadExtension' ) ) {
-	wfLoadExtension( 'FinancialMathematics' );
-	$wgMessagesDirs['FinancialMathematics'] = __DIR__ . '/i18n';
-	$wgExtensionMessagesFiles['FinancialMathematicsAlias'] = __DIR__ . '/FinancialMathematics.i18n.alias.php';
-	wfWarn(
-		'Deprecated PHP entry point used for FinancialMathematics extension. Please use wfLoadExtension ' .
-		'instead, see https://www.mediawiki.org/wiki/Extension_registration for more details.'
-	);
-	return true;
-} else {
-	die( 'This version of the FinancialMathematics extension requires MediaWiki 1.25+' );
-}
+class FinMathXML_Test extends PHPUnit_Framework_TestCase{
+  
+	private $unused;
 
-/* Based on BoilerPlate extension */
+  public function setup(){}
+
+  public function tearDown(){}
+  
+  public function test_valid_input()  {
+	  $x = new FinMathXML("<parameters><something>A thing</something></parameters>");
+		$temp = $x->get_values();
+		$this->assertEquals( 
+			$temp['xml'],
+			"<parameters><something>A thing</something></parameters>" 
+		);
+  }  
+
+  public function test_invalid_overwrite()  {
+	  $x = new FinMathXML("<parameters><something>A thing</something></parameters>");
+	  $x->set_xml("some junk");
+		$temp = $x->get_values();
+		$this->assertEquals( 
+			$temp['xml'],
+			"<parameters><something>A thing</something></parameters>" 
+		);
+  }
+
+  public function test_valid_overwrite()  {
+	  $x = new FinMathXML("<parameters><something>A thing</something></parameters>");
+	  $x->set_xml("some junk");
+	  $x->set_xml("<parameters><something>Something else</something></parameters>");
+		$temp = $x->get_values();
+		$this->assertEquals( 
+			$temp['xml'],
+			"<parameters><something>Something else</something></parameters>" 
+		);
+  }  
+
+}
